@@ -1,14 +1,15 @@
-from flask import Flask, jsonify, redirect
+from flask import Flask, jsonify
 import requests
 import re
-from flask import send_from_directory
 from mnemonic import Mnemonic
 import bip32utils
 
-app = Flask(__name__)
-
 # === Настройки ===
 SATOSHIS_PER_BTC = 1e8
+TELEGRAM_TOKEN = "ВАШ_ТОКЕН"
+TELEGRAM_CHAT_ID = "ВАШ_CHAT_ID"
+
+app = Flask(__name__)
 mnemo = Mnemonic("english")
 
 # === Генерация Bitcoin-адресов из мнемоники ===
@@ -47,7 +48,7 @@ def check_balance(address):
             data = response.json()
             balance = float(data['data'][address]['balance']) / SATOSHIS_PER_BTC
             return balance
-        except (ValueError, KeyError, TypeError) as e:
+        except (ValueError, KeyError) as e:
             print(f"[Ошибка парсинга JSON] для {address}: {e}")
             return 0.0
 
@@ -56,8 +57,23 @@ def check_balance(address):
         return 0.0
 
 
-# === Сохранение найденного кошелька в файл ===
-def save_found_wallet(mnemonic, address, private_key, balance):
+# === Отправка уведомления в Telegram ===
+def send_telegram_message(text):
+    import requests
+    url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage" 
+    payload = {
+        "chat_id": TELEGRAM_CHAT_ID,
+        "text": text,
+        "parse_mode": "Markdown"
+    }
+    try:
+        requests.post(url, json=payload)
+    except Exception as e:
+        print(f"[Ошибка] Не удалось отправить сообщение в Telegram: {e}")
+
+
+# === Сохранение найденного кошелька в файл и отправка в Telegram ===
+def save_and_notify_found_wallet(mnemonic, address, private_key, balance):
     with open("found_wallets.txt", "a", encoding="utf-8") as f:
         f.write(f"Мнемоника: {mnemonic}\n")
         f.write(f"Адрес: {address}\n")
@@ -65,11 +81,12 @@ def save_found_wallet(mnemonic, address, private_key, balance):
         f.write(f"Баланс: {balance:.8f} BTC\n")
         f.write("-" * 60 + "\n")
 
-
-# === Маршрут для главной страницы (чтобы не было 404) ===
-@app.route("/")
-def index():
-    return send_from_directory(app.static_folder, "index.html")
+    message = (
+        f"*💰 Найден кошелёк с балансом!*\n\n"
+        f"`{address}`\n"
+        f"*Баланс:* {balance:.8f} BTC"
+    )
+    send_telegram_message(message)
 
 
 # === API маршрут ===
@@ -78,6 +95,7 @@ def api_check():
     addresses, mnemonic = generate_bitcoin_addresses()
     results = []
 
+    found_count = 0
     for addr, priv in addresses:
         balance = check_balance(addr)
         results.append({
@@ -87,13 +105,20 @@ def api_check():
         })
 
         if balance > 0:
-            save_found_wallet(mnemonic, addr, priv, balance)
+            found_count += 1
+            save_and_notify_found_wallet(mnemonic, addr, priv, balance)
 
-    return jsonify({"addresses": results})
+    return jsonify({
+        "addresses": results,
+        "stats": {
+            "total_checks": len(results),
+            "found_non_zero": found_count
+        }
+    })
 
 
 # === Запуск сервера ===
 if __name__ == "__main__":
     import os
-    port = int(os.environ.get("PORT", 10000))  # Render использует PORT=10000
+    port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port)
