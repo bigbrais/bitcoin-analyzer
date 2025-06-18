@@ -9,8 +9,8 @@ app = Flask(__name__)
 SATOSHIS_PER_BTC = 1e8
 
 # 🔐 Укажи свои данные:
-TELEGRAM_TOKEN = "ВАШ_ТОКЕН"
-TELEGRAM_CHAT_ID = "ВАШ_CHAT_ID"
+TELEGRAM_TOKEN = "7552021851:AAG13Ev6Dg9b0Wtv8noRlwiXH8-8Yz0wzcQ"
+TELEGRAM_CHAT_ID = "711268965"
 
 mnemo = Mnemonic("english")
 
