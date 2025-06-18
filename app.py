@@ -1,4 +1,4 @@
-from flask import Flask, jsonify
+from flask import Flask, jsonify, redirect
 import requests
 import re
 from mnemonic import Mnemonic
@@ -6,6 +6,7 @@ import bip32utils
 
 app = Flask(__name__)
 
+# === Настройки ===
 SATOSHIS_PER_BTC = 1e8
 mnemo = Mnemonic("english")
 
@@ -64,6 +65,12 @@ def save_found_wallet(mnemonic, address, private_key, balance):
         f.write("-" * 60 + "\n")
 
 
+# === Маршрут для главной страницы (чтобы не было 404) ===
+@app.route("/")
+def home():
+    return "<h1>Bitcoin Анализатор работает</h1><p>API доступен по /api/check</p>"
+
+
 # === API маршрут ===
 @app.route("/api/check")
 def api_check():
@@ -87,5 +94,5 @@ def api_check():
 # === Запуск сервера ===
 if __name__ == "__main__":
     import os
-    port = int(os.environ.get("PORT", 5000))
+    port = int(os.environ.get("PORT", 10000))  # Render использует PORT=10000
     app.run(host="0.0.0.0", port=port)
