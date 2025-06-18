@@ -158,7 +158,7 @@
           }
         });
 
-        while (addressListEl.children.length > 30) {
+        while (addressListEl.children.length > 6) {
           addressListEl.removeChild(addressListEl.lastElementChild);
         }
 
@@ -171,7 +171,7 @@
         console.error("Ошибка загрузки данных", err);
       }
 
-      setTimeout(fetchData, 2000); // Каждые 2 секунды
+      setTimeout(fetchData, 1000); // Каждые 2 секунды
     }
 
     startBtn.addEventListener('click', () => {
