@@ -1,16 +1,12 @@
 from flask import Flask, jsonify
 import requests
 import re
-import time
 from mnemonic import Mnemonic
 import bip32utils
 
-app = Flask(__name__, static_folder='static', static_url_path='')
+app = Flask(__name__)
 
-# === Настройки ===
 SATOSHIS_PER_BTC = 1e8
-CHECK_BALANCE_URL = "https://api.blockchair.com/bitcoin/address/{address}" 
-
 mnemo = Mnemonic("english")
 
 # === Генерация Bitcoin-адресов из мнемоники ===
@@ -20,7 +16,7 @@ def generate_bitcoin_addresses():
     root_key = bip32utils.BIP32Key.fromEntropy(seed)
 
     addresses = []
-    for i in range(3):  # m/44'/0'/0'/0/0, m/44'/0'/0'/0/1, m/44'/0'/0'/0/2
+    for i in range(3):  # m/44'/0'/0'/0/0 ... m/44'/0'/0'/0/2
         key = (
             root_key.ChildKey(44 + bip32utils.BIP32_HARDEN)
             .ChildKey(0 + bip32utils.BIP32_HARDEN)
@@ -34,13 +30,11 @@ def generate_bitcoin_addresses():
     return addresses, mnemonic
 
 
-# === Проверка баланса через API ===
+# === Проверка баланса через blockchair.com ===
 def check_balance(address):
-    headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0 Safari/537.36'
-    }
+    headers = {'User-Agent': 'Mozilla/5.0'}
     try:
-        url = CHECK_BALANCE_URL.format(address=address)
+        url = f"https://api.blockchair.com/bitcoin/address/{address}" 
         response = requests.get(url, headers=headers, timeout=10)
 
         if response.status_code != 200:
@@ -51,7 +45,7 @@ def check_balance(address):
             data = response.json()
             balance = float(data['data'][address]['balance']) / SATOSHIS_PER_BTC
             return balance
-        except (ValueError, KeyError) as e:
+        except (ValueError, KeyError, TypeError) as e:
             print(f"[Ошибка парсинга JSON] для {address}: {e}")
             return 0.0
 
