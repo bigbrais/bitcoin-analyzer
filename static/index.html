@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <title>Bitcoin Анализатор</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', sans-serif;
+      background-color: #1a202c;
+      color: #f7fafc;
+    }
+    .container {
+      max-width: 960px;
+      margin: auto;
+      padding: 1rem;
+    }
+    h1 {
+      text-align: center;
+      margin-bottom: 1.5rem;
+      color: #4FD1C5;
+    }
+    .card {
+      background-color: #2d3748;
+      border-radius: 0.5rem;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+    .btn {
+      display: inline-block;
+      background-color: #4FD1C5;
+      color: #1a202c;
+      padding: 0.5rem 1rem;
+      border-radius: 0.375rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .secondary-btn {
+      background-color: #4A5568;
+      color: white;
+    }
+    .grid {
+      display: grid;
+      gap: 1.5rem;
+      margin-top: 1rem;
+    }
+    .address-card {
+      background-color: #4A5568;
+      padding: 1rem;
+      border-radius: 0.375rem;
+    }
+    .address {
+      font-family: monospace;
+      word-break: break-all;
+      margin-bottom: 0.5rem;
+    }
+    #mnemonicText {
+      opacity: 0.8;
+      font-style: italic;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Анализатор Bitcoin Адресов</h1>
+
+    <div class="card">
+      <button id="startBtn" class="btn">Запустить</button>
+      <button id="stopBtn" class="btn secondary-btn" disabled>Остановить</button>
+    </div>
+
+    <div class="card">
+      <p>Статус: <span id="status">Не запущено</span></p>
+      <p>Проверенные адреса: <span id="addressesChecked">0</span></p>
+      <p>Всего проверок: <span id="totalChecks">0</span></p>
+      <p>Последняя проверка: <span id="lastCheck">Нет данных</span></p>
+    </div>
+
+    <div class="card">
+      <h2>Сгенерированные адреса</h2>
+      <div id="addressList"></div>
+    </div>
+
+    <div class="card">
+      <h2>Мнемоническая фраза</h2>
+      <div id="mnemonicText">Фраза будет здесь</div>
+    </div>
+  </div>
+
+  <script>
+    const startBtn = document.getElementById('startBtn');
+    const stopBtn = document.getElementById('stopBtn');
+    const statusEl = document.getElementById('status');
+    const addressesCheckedEl = document.getElementById('addressesChecked');
+    const totalChecksEl = document.getElementById('totalChecks');
+    const lastCheckEl = document.getElementById('lastCheck');
+    const addressListEl = document.getElementById('addressList');
+    const mnemonicTextEl = document.getElementById('mnemonicText');
+
+    let simulationRunning = false;
+
+    async function fetchData() {
+      if (!simulationRunning) return;
+
+      try {
+        const response = await fetch('/api/check');
+        const data = await response.json();
+
+        mnemonicTextEl.textContent = data.mnemonic;
+        addressListEl.innerHTML = '';
+
+        data.addresses.forEach(addr => {
+          const div = document.createElement('div');
+          div.className = 'address-card';
+          div.innerHTML = `
+            <p class="address">${addr.address}</p>
+            <small>Приватный ключ: <span style="opacity: 0.7;">${addr.private_key}</span></small><br/>
+            <span style="color: ${addr.balance > 0 ? '#F56565' : '#48BB78'};">Баланс: ${addr.balance} BTC</span>
+          `;
+          addressListEl.appendChild(div);
+        });
+
+        addressesCheckedEl.textContent = parseInt(addressesCheckedEl.textContent) + 1;
+        totalChecksEl.textContent = parseInt(totalChecksEl.textContent) + data.addresses.length;
+        lastCheckEl.textContent = new Date().toLocaleTimeString();
+
+      } catch (err) {
+        console.error("Ошибка загрузки", err);
+      }
+
+      setTimeout(fetchData, 5000);
+    }
+
+    startBtn.addEventListener('click', () => {
+      if (!simulationRunning) {
+        simulationRunning = true;
+        statusEl.textContent = 'Активно';
+        statusEl.style.color = '#F56565';
+        startBtn.disabled = true;
+        stopBtn.disabled = false;
+        fetchData();
+      }
+    });
+
+    stopBtn.addEventListener('click', () => {
+      simulationRunning = false;
+      statusEl.textContent = 'Не запущено';
+      statusEl.style.color = '#48BB78';
+      startBtn.disabled = false;
+      stopBtn.disabled = true;
+    });
+  </script>
+</body>
+</html>
