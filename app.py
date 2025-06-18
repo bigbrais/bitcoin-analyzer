@@ -1,6 +1,7 @@
 from flask import Flask, jsonify, redirect
 import requests
 import re
+from flask import send_from_directory
 from mnemonic import Mnemonic
 import bip32utils
 
@@ -67,8 +68,8 @@ def save_found_wallet(mnemonic, address, private_key, balance):
 
 # === Маршрут для главной страницы (чтобы не было 404) ===
 @app.route("/")
-def home():
-    return "<h1>Bitcoin Анализатор работает</h1><p>API доступен по /api/check</p>"
+def index():
+    return send_from_directory(app.static_folder, "index.html")
 
 
 # === API маршрут ===
